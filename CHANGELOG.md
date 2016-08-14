@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.4.4 (2016-08-14)
+
+* Bug fix: Emit error event and close Stream when writing to stream resource fails
+  (#25 by @lysenkobv)
+
+* Bug fix: Emit error event and close Stream when reading from stream resource fails
+  (#40 by @clue)
+
+* Bug fix: Do not emit empty data event if nothing has been read (stream reached EOF)
+  (#39 by @clue)
+
+* Add benchmarking script to measure throughput in CI
+  (#41 by @clue)
+
 ## 0.4.3 (2015-10-07)
 
 * Bug fix: Read buffer to 0 fixes error with libevent and large quantity of I/O (@mbonneau)
