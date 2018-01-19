@@ -19,36 +19,20 @@ class DuplexResourceStreamIntegrationTest extends TestCase
     {
         return array(
             array(
-                function() {
-                    return true;
-                },
-                function () {
-                    return new StreamSelectLoop();
-                }
+                true,
+                'React\EventLoop\StreamSelectLoop'
             ),
             array(
-                function () {
-                    return function_exists('event_base_new');
-                },
-                function () {
-                    return class_exists('React\EventLoop\ExtLibeventLoop') ? new ExtLibeventLoop() : new LibEventLoop();
-                }
+                function_exists('event_base_new'),
+                class_exists('React\EventLoop\ExtLibeventLoop') ? 'React\EventLoop\ExtLibeventLoop' : 'React\EventLoop\LibEventLoop'
             ),
             array(
-                function () {
-                    return class_exists('libev\EventLoop');
-                },
-                function () {
-                    return class_exists('React\EventLoop\ExtLibevLoop') ? new ExtLibevLoop() : new LibEvLoop();
-                }
+                class_exists('libev\EventLoop'),
+                class_exists('React\EventLoop\ExtLibevLoop') ? 'React\EventLoop\ExtLibevLoop' : 'React\EventLoop\LibEvLoop'
             ),
             array(
-                function () {
-                    return class_exists('EventBase') && class_exists('React\EventLoop\ExtEventLoop');
-                },
-                function () {
-                    return new ExtEventLoop();
-                }
+                class_exists('EventBase') && class_exists('React\EventLoop\ExtEventLoop'),
+                'React\EventLoop\ExtEventLoop'
             )
         );
     }
@@ -58,11 +42,11 @@ class DuplexResourceStreamIntegrationTest extends TestCase
      */
     public function testBufferReadsLargeChunks($condition, $loopFactory)
     {
-        if (true !== $condition()) {
+        if (true !== $condition) {
             return $this->markTestSkipped('Loop implementation not available');
         }
 
-        $loop = $loopFactory();
+        $loop = new $loopFactory();
 
         list($sockA, $sockB) = stream_socket_pair(STREAM_PF_UNIX, STREAM_SOCK_STREAM, 0);
 
@@ -94,11 +78,11 @@ class DuplexResourceStreamIntegrationTest extends TestCase
      */
     public function testWriteLargeChunk($condition, $loopFactory)
     {
-        if (true !== $condition()) {
+        if (true !== $condition) {
             return $this->markTestSkipped('Loop implementation not available');
         }
 
-        $loop = $loopFactory();
+        $loop = new $loopFactory();
 
         list($sockA, $sockB) = stream_socket_pair(STREAM_PF_UNIX, STREAM_SOCK_STREAM, 0);
 
@@ -133,11 +117,11 @@ class DuplexResourceStreamIntegrationTest extends TestCase
      */
     public function testDoesNotEmitDataIfNothingHasBeenWritten($condition, $loopFactory)
     {
-        if (true !== $condition()) {
+        if (true !== $condition) {
             return $this->markTestSkipped('Loop implementation not available');
         }
 
-        $loop = $loopFactory();
+        $loop = new $loopFactory();
 
         list($sockA, $sockB) = stream_socket_pair(STREAM_PF_UNIX, STREAM_SOCK_STREAM, 0);
 
@@ -158,11 +142,11 @@ class DuplexResourceStreamIntegrationTest extends TestCase
      */
     public function testEmitsWriteErrorIfRemoteSideFromPairHasBeenClosed($condition, $loopFactory)
     {
-        if (true !== $condition()) {
+        if (true !== $condition) {
             return $this->markTestSkipped('Loop implementation not available');
         }
 
-        $loop = $loopFactory();
+        $loop = new $loopFactory();
 
         list($sockA, $sockB) = stream_socket_pair(STREAM_PF_UNIX, STREAM_SOCK_STREAM, 0);
 
@@ -188,11 +172,11 @@ class DuplexResourceStreamIntegrationTest extends TestCase
      */
     public function testEmitsWriteErrorIfServerSideHasBeenClosed($condition, $loopFactory)
     {
-        if (true !== $condition()) {
+        if (true !== $condition) {
             return $this->markTestSkipped('Loop implementation not available');
         }
 
-        $loop = $loopFactory();
+        $loop = new $loopFactory();
 
         $server = stream_socket_server('tcp://127.0.0.1:0');
 
@@ -221,11 +205,11 @@ class DuplexResourceStreamIntegrationTest extends TestCase
      */
     public function testEmitsWriteErrorIfClientSideHasBeenClosed($condition, $loopFactory)
     {
-        if (true !== $condition()) {
+        if (true !== $condition) {
             return $this->markTestSkipped('Loop implementation not available');
         }
 
-        $loop = $loopFactory();
+        $loop = new $loopFactory();
 
         $server = stream_socket_server('tcp://127.0.0.1:0');
 
@@ -254,11 +238,11 @@ class DuplexResourceStreamIntegrationTest extends TestCase
      */
     public function testReadsSingleChunkFromProcessPipe($condition, $loopFactory)
     {
-        if (true !== $condition()) {
+        if (true !== $condition) {
             return $this->markTestSkipped('Loop implementation not available');
         }
 
-        $loop = $loopFactory();
+        $loop = new $loopFactory();
 
         $stream = new ReadableResourceStream(popen('echo test', 'r'), $loop);
         $stream->on('data', $this->expectCallableOnceWith("test\n"));
@@ -273,11 +257,11 @@ class DuplexResourceStreamIntegrationTest extends TestCase
      */
     public function testReadsMultipleChunksFromProcessPipe($condition, $loopFactory)
     {
-        if (true !== $condition()) {
+        if (true !== $condition) {
             return $this->markTestSkipped('Loop implementation not available');
         }
 
-        $loop = $loopFactory();
+        $loop = new $loopFactory();
 
         $stream = new ReadableResourceStream(popen('echo a;sleep 0.1;echo b;sleep 0.1;echo c', 'r'), $loop);
 
@@ -299,11 +283,11 @@ class DuplexResourceStreamIntegrationTest extends TestCase
      */
     public function testReadsLongChunksFromProcessPipe($condition, $loopFactory)
     {
-        if (true !== $condition()) {
+        if (true !== $condition) {
             return $this->markTestSkipped('Loop implementation not available');
         }
 
-        $loop = $loopFactory();
+        $loop = new $loopFactory();
 
         $stream = new ReadableResourceStream(popen('dd if=/dev/zero bs=12345 count=1234 2>&-', 'r'), $loop);
 
@@ -325,11 +309,11 @@ class DuplexResourceStreamIntegrationTest extends TestCase
      */
     public function testReadsNothingFromProcessPipeWithNoOutput($condition, $loopFactory)
     {
-        if (true !== $condition()) {
+        if (true !== $condition) {
             return $this->markTestSkipped('Loop implementation not available');
         }
 
-        $loop = $loopFactory();
+        $loop = new $loopFactory();
 
         $stream = new ReadableResourceStream(popen('true', 'r'), $loop);
         $stream->on('data', $this->expectCallableNever());
