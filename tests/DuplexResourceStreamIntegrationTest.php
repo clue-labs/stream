@@ -4,6 +4,7 @@ namespace React\Tests\Stream;
 
 use React\Stream\DuplexResourceStream;
 use React\Stream\ReadableResourceStream;
+use React\Stream\ReadableStreamInterface;
 use React\EventLoop\ExtEventLoop;
 use React\EventLoop\ExtLibeventLoop;
 use React\EventLoop\ExtLibevLoop;
@@ -117,10 +118,9 @@ class DuplexResourceStreamIntegrationTest extends TestCase
         $streamB->on('data', function ($chunk) use (&$received) {
             $received += strlen($chunk);
         });
-        $streamB->on('close', $this->expectCallableOnce());
         $streamB->on('error', $this->expectCallableNever());
 
-        $loop->run();
+        $this->awaitStreamClose($streamB, $loop);
 
         $streamA->close();
         $streamB->close();
@@ -150,10 +150,7 @@ class DuplexResourceStreamIntegrationTest extends TestCase
         // streamB should not emit any data
         $streamB->on('data', $this->expectCallableNever());
 
-        $loop->run();
-
-        $streamA->close();
-        $streamB->close();
+        $this->awaitStreamClose($streamB, $loop);
     }
 
     /**
@@ -172,15 +169,15 @@ class DuplexResourceStreamIntegrationTest extends TestCase
         $streamA = new DuplexResourceStream($sockA, $loop);
         $streamB = new DuplexResourceStream($sockB, $loop);
 
-        // end streamA without writing any data
+        // try to write data to closed remote end
         $streamA->pause();
         $streamA->write('hello');
-        $streamA->on('close', $this->expectCallableOnce());
+        $streamA->on('error', $this->expectCallableOnce());
 
         $streamB->on('data', $this->expectCallableNever());
         $streamB->close();
 
-        $loop->run();
+        $this->awaitStreamClose($streamA, $loop);
 
         $streamA->close();
         $streamB->close();
@@ -208,12 +205,12 @@ class DuplexResourceStreamIntegrationTest extends TestCase
         // end streamA without writing any data
         $streamA->pause();
         $streamA->write('hello');
-        $streamA->on('close', $this->expectCallableOnce());
+        $streamA->on('error', $this->expectCallableOnce());
 
         $streamB->on('data', $this->expectCallableNever());
         $streamB->close();
 
-        $loop->run();
+        $this->awaitStreamClose($streamA, $loop);
 
         $streamA->close();
         $streamB->close();
@@ -241,12 +238,12 @@ class DuplexResourceStreamIntegrationTest extends TestCase
         // end streamA without writing any data
         $streamA->pause();
         $streamA->write('hello');
-        $streamA->on('close', $this->expectCallableOnce());
+        $streamA->on('error', $this->expectCallableOnce());
 
         $streamB->on('data', $this->expectCallableNever());
         $streamB->close();
 
-        $loop->run();
+        $this->awaitStreamClose($streamA, $loop);
 
         $streamA->close();
         $streamB->close();
@@ -268,7 +265,7 @@ class DuplexResourceStreamIntegrationTest extends TestCase
         $stream->on('end', $this->expectCallableOnce());
         $stream->on('error', $this->expectCallableNever());
 
-        $loop->run();
+        $this->awaitStreamClose($stream, $loop);
     }
 
     /**
@@ -292,7 +289,7 @@ class DuplexResourceStreamIntegrationTest extends TestCase
         $stream->on('end', $this->expectCallableOnce());
         $stream->on('error', $this->expectCallableNever());
 
-        $loop->run();
+        $this->awaitStreamClose($stream, $loop);
 
         $this->assertEquals("a\n" . "b\n" . "c\n", $buffer);
     }
@@ -318,7 +315,7 @@ class DuplexResourceStreamIntegrationTest extends TestCase
         $stream->on('end', $this->expectCallableOnce());
         $stream->on('error', $this->expectCallableNever());
 
-        $loop->run();
+        $this->awaitStreamClose($stream, $loop);
 
         $this->assertEquals(12345 * 1234, $bytes);
     }
@@ -339,7 +336,7 @@ class DuplexResourceStreamIntegrationTest extends TestCase
         $stream->on('end', $this->expectCallableOnce());
         $stream->on('error', $this->expectCallableNever());
 
-        $loop->run();
+        $this->awaitStreamClose($stream, $loop);
     }
 
     private function loopTick(LoopInterface $loop)
@@ -347,6 +344,21 @@ class DuplexResourceStreamIntegrationTest extends TestCase
         $loop->addTimer(0, function () use ($loop) {
             $loop->stop();
         });
+        $loop->run();
+    }
+
+    private function awaitStreamClose(ReadableStreamInterface $stream, LoopInterface $loop, $timeout = 10.0)
+    {
+        $stream->on('close', function () use ($loop) {
+            $loop->stop();
+        });
+
+        $that = $this;
+        $loop->addTimer($timeout, function () use ($loop, $that) {
+            $loop->stop();
+            $that->fail('Timed out while waiting for stream to close');
+        });
+
         $loop->run();
     }
 }
