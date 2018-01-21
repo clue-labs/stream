@@ -156,7 +156,7 @@ class DuplexResourceStreamIntegrationTest extends TestCase
     /**
      * @dataProvider loopProvider
      */
-    public function testDoesNotWriteDataIfRemoteSideFromPairHasBeenClosed($condition, $loopFactory)
+    public function testEmitsWriteErrorIfRemoteSideFromPairHasBeenClosed($condition, $loopFactory)
     {
         if (true !== $condition()) {
             return $this->markTestSkipped('Loop implementation not available');
@@ -169,9 +169,9 @@ class DuplexResourceStreamIntegrationTest extends TestCase
         $streamA = new DuplexResourceStream($sockA, $loop);
         $streamB = new DuplexResourceStream($sockB, $loop);
 
-        // try to write data to closed remote end
+        // fill write buffer and expect error
         $streamA->pause();
-        $streamA->write('hello');
+        $streamA->write(str_repeat('.', 50 * 1000));
         $streamA->on('error', $this->expectCallableOnce());
 
         $streamB->on('data', $this->expectCallableNever());
@@ -186,7 +186,7 @@ class DuplexResourceStreamIntegrationTest extends TestCase
     /**
      * @dataProvider loopProvider
      */
-    public function testDoesNotWriteDataIfServerSideHasBeenClosed($condition, $loopFactory)
+    public function testEmitsWriteErrorIfServerSideHasBeenClosed($condition, $loopFactory)
     {
         if (true !== $condition()) {
             return $this->markTestSkipped('Loop implementation not available');
@@ -202,9 +202,9 @@ class DuplexResourceStreamIntegrationTest extends TestCase
         $streamA = new DuplexResourceStream($client, $loop);
         $streamB = new DuplexResourceStream($peer, $loop);
 
-        // end streamA without writing any data
+        // fill write buffer and expect error
         $streamA->pause();
-        $streamA->write('hello');
+        $streamA->write(str_repeat('.', 50 * 1000));
         $streamA->on('error', $this->expectCallableOnce());
 
         $streamB->on('data', $this->expectCallableNever());
@@ -219,7 +219,7 @@ class DuplexResourceStreamIntegrationTest extends TestCase
     /**
      * @dataProvider loopProvider
      */
-    public function testDoesNotWriteDataIfClientSideHasBeenClosed($condition, $loopFactory)
+    public function testEmitsWriteErrorIfClientSideHasBeenClosed($condition, $loopFactory)
     {
         if (true !== $condition()) {
             return $this->markTestSkipped('Loop implementation not available');
@@ -235,9 +235,9 @@ class DuplexResourceStreamIntegrationTest extends TestCase
         $streamA = new DuplexResourceStream($peer, $loop);
         $streamB = new DuplexResourceStream($client, $loop);
 
-        // end streamA without writing any data
+        // fill write buffer and expect error
         $streamA->pause();
-        $streamA->write('hello');
+        $streamA->write(str_repeat('.', 50 * 1000));
         $streamA->on('error', $this->expectCallableOnce());
 
         $streamB->on('data', $this->expectCallableNever());
